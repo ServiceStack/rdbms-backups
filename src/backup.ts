@@ -48,7 +48,7 @@ export class BackupEngine {
       this.log(backupId, 'info', `Backup completed. Size: ${this.formatBytes(size)}`);
 
       // Update backup record
-      const stmt = this.db.db_internal.query(`
+      const stmt = this.db.db_internal.prepare(`
         UPDATE backups
         SET size = ?, endTime = ?, duration = ?, status = ?
         WHERE id = ?
@@ -68,7 +68,7 @@ export class BackupEngine {
       const endTime = new Date().toISOString();
       const duration = new Date(endTime).getTime() - new Date(startTime).getTime();
 
-      const stmt = this.db.db_internal.query(`
+      const stmt = this.db.db_internal.prepare(`
         UPDATE backups
         SET endTime = ?, duration = ?, status = ?, error = ?
         WHERE id = ?
@@ -149,7 +149,7 @@ export class BackupEngine {
 
       this.log(backupId, 'info', `Successfully uploaded to S3: ${s3Key}`);
 
-      const stmt = this.db.db_internal.query(`
+      const stmt = this.db.db_internal.prepare(`
         UPDATE backups
         SET s3Uploaded = 1, s3Key = ?
         WHERE id = ?

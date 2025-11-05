@@ -1,4 +1,3 @@
-import { serve } from '@hono/node-server';
 import { initializeConfig, config } from './config';
 import { BackupDatabase } from './database';
 import { BackupEngine } from './backup';
@@ -52,13 +51,13 @@ async function main() {
   // Create and start API server
   const app = createApp(db, scheduler, restoreEngine);
 
-  const server = serve({
+  const server = Bun.serve({
     fetch: app.fetch,
     port: config.server.port,
     hostname: config.server.host,
   });
 
-  console.log(`\n✓ Server running at http://${config.server.host}:${config.server.port}`);
+  console.log(`\n✓ Server running at http://${server.hostname}:${server.port}`);
   console.log(`\n=== Service is ready ===\n`);
 
   // Graceful shutdown
