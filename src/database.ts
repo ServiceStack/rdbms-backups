@@ -1,8 +1,8 @@
-import Database from 'better-sqlite3';
+import { Database } from 'bun:sqlite';
 import type { BackupRecord, BackupLog } from './types';
 
 export class BackupDatabase {
-  private db: Database.Database;
+  private db: Database;
 
   constructor(dbPath: string = './backups.db') {
     this.db = new Database(dbPath);
@@ -10,7 +10,7 @@ export class BackupDatabase {
   }
 
   private initialize() {
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS backups (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         type TEXT NOT NULL,
@@ -41,13 +41,17 @@ export class BackupDatabase {
     `);
   }
 
+  get db_internal() {
+    return this.db;
+  }
+
   insertBackup(backup: Omit<BackupRecord, 'id'>): number {
-    const stmt = this.db.prepare(`
+    const stmt = this.db.query(`
       INSERT INTO backups (type, filename, filepath, size, startTime, endTime, duration, status, error, s3Uploaded, s3Key)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = stmt.run(
+    stmt.run(
       backup.type,
       backup.filename,
       backup.filepath,
@@ -61,24 +65,24 @@ export class BackupDatabase {
       backup.s3Key || null
     );
 
-    return result.lastInsertRowid as number;
+    return this.db.query('SELECT last_insert_rowid() as id').get() as any;
   }
 
   insertLog(log: Omit<BackupLog, 'id'>): number {
-    const stmt = this.db.prepare(`
+    const stmt = this.db.query(`
       INSERT INTO logs (backupId, timestamp, level, message)
       VALUES (?, ?, ?, ?)
     `);
 
-    const result = stmt.run(log.backupId, log.timestamp, log.level, log.message);
-    return result.lastInsertRowid as number;
+    stmt.run(log.backupId, log.timestamp, log.level, log.message);
+    return this.db.query('SELECT last_insert_rowid() as id').get() as any;
   }
 
   getBackups(limit?: number): BackupRecord[] {
     let query = 'SELECT * FROM backups ORDER BY startTime DESC';
     if (limit) query += ` LIMIT ${limit}`;
 
-    const stmt = this.db.prepare(query);
+    const stmt = this.db.query(query);
     const rows = stmt.all() as any[];
 
     return rows.map(row => ({
@@ -88,7 +92,7 @@ export class BackupDatabase {
   }
 
   getBackupsByType(type: string): BackupRecord[] {
-    const stmt = this.db.prepare('SELECT * FROM backups WHERE type = ? ORDER BY startTime DESC');
+    const stmt = this.db.query('SELECT * FROM backups WHERE type = ? ORDER BY startTime DESC');
     const rows = stmt.all(type) as any[];
 
     return rows.map(row => ({
@@ -98,7 +102,7 @@ export class BackupDatabase {
   }
 
   getBackup(id: number): BackupRecord | undefined {
-    const stmt = this.db.prepare('SELECT * FROM backups WHERE id = ?');
+    const stmt = this.db.query('SELECT * FROM backups WHERE id = ?');
     const row = stmt.get(id) as any;
 
     if (!row) return undefined;
@@ -110,19 +114,20 @@ export class BackupDatabase {
   }
 
   getLogs(backupId: number): BackupLog[] {
-    const stmt = this.db.prepare('SELECT * FROM logs WHERE backupId = ? ORDER BY timestamp ASC');
+    const stmt = this.db.query('SELECT * FROM logs WHERE backupId = ? ORDER BY timestamp ASC');
     return stmt.all(backupId) as BackupLog[];
   }
 
   deleteBackup(id: number): void {
-    const stmt = this.db.prepare('DELETE FROM backups WHERE id = ?');
+    const stmt = this.db.query('DELETE FROM backups WHERE id = ?');
     stmt.run(id);
   }
 
   deleteBackupsBefore(type: string, date: string): number {
-    const stmt = this.db.prepare('DELETE FROM backups WHERE type = ? AND startTime < ?');
-    const result = stmt.run(type, date);
-    return result.changes;
+    const before = this.db.query('SELECT COUNT(*) as count FROM backups WHERE type = ? AND startTime < ?').get(type, date) as any;
+    const stmt = this.db.query('DELETE FROM backups WHERE type = ? AND startTime < ?');
+    stmt.run(type, date);
+    return before.count;
   }
 
   close() {

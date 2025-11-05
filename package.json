@@ -13,13 +13,11 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.621.0",
     "@hono/node-server": "^1.12.0",
-    "better-sqlite3": "^11.3.0",
     "hono": "^4.5.8",
     "node-cron": "^3.0.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.11",
     "@types/node-cron": "^3.0.11",
     "bun-types": "^1.1.27"
   }
