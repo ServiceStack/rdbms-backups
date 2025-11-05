@@ -1,0 +1,59 @@
+{
+  "database": {
+    "type": "postgresql",
+    "host": "localhost",
+    "port": 5432,
+    "username": "postgres",
+    "password": "password",
+    "database": "mydb"
+  },
+  "backup": {
+    "localPath": "/backups",
+    "schedules": {
+      "hourly": {
+        "cron": "0 * * * *",
+        "enabled": true,
+        "retention": {
+          "count": 6,
+          "unit": "hours"
+        }
+      },
+      "daily": {
+        "cron": "0 2 * * *",
+        "enabled": true,
+        "retention": {
+          "count": 7,
+          "unit": "days"
+        }
+      },
+      "weekly": {
+        "cron": "0 3 * * 0",
+        "enabled": true,
+        "retention": {
+          "count": 4,
+          "unit": "weeks"
+        }
+      },
+      "monthly": {
+        "cron": "0 4 1 * *",
+        "enabled": true,
+        "retention": {
+          "count": 12,
+          "unit": "months"
+        }
+      }
+    }
+  },
+  "s3": {
+    "enabled": true,
+    "bucket": "my-backup-bucket",
+    "region": "us-east-1",
+    "accessKeyId": "YOUR_ACCESS_KEY",
+    "secretAccessKey": "YOUR_SECRET_KEY",
+    "prefix": "database-backups/"
+  },
+  "server": {
+    "port": 3000,
+    "host": "0.0.0.0"
+  }
+}
